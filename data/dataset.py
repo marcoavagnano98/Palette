@@ -130,7 +130,7 @@ class UncroppingDataset(data.Dataset):
     def __len__(self):
         return len(self.imgs)
     
-    def load_dataset_keypoints(self, kpoints):
+    def get_dataset_keypoints(self, kpoints):
         with open(kpoints, "r") as json_f:
             kpoints = json.load(json_f)
         return kpoints
