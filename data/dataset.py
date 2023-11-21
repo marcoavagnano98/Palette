@@ -114,7 +114,7 @@ class UncroppingDataset(data.Dataset):
         path = self.imgs[index]
         img = self.tfs(self.loader(path))
         if self.mask_mode == "hpe":
-            mask = self.get_mask_with_landmarks(path, self.get_dataset_keypoints("landmarks.json"))
+            mask = self.get_mask_with_landmarks(path, self.get_dataset_keypoints("/content/drive/MyDrive/technogym/dataset/youtube/youtube_annotations.json"))
         else:    
             mask = self.get_mask()
         cond_image = img*(1. - mask) + mask*torch.randn_like(img)
@@ -136,9 +136,10 @@ class UncroppingDataset(data.Dataset):
         return kpoints
 
     def get_mask_with_landmarks(self, path, kpoints):
-        path = path[-1][-4]
-        _, xl, conf1 = self.kpoints[path][11]
-        _, xr, conf2 = self.kpoints[path][12]
+        path = path.split('/')[-1][:-4]
+       
+        _, xl, conf1 = kpoints[path][11]
+        _, xr, conf2 = kpoints[path][12]
         x = xl if conf1 > conf2 else xr
         mask = bbox2mask(self.image_size, hpe_cropping(x_cut=int(x // 1)))
         return torch.from_numpy(mask).permute(2,0,1)
