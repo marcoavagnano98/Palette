@@ -31,6 +31,12 @@ def random_cropping_bbox(img_shape=(256,256), mask_mode='onedirection'):
         else:
             left = np.random.randint(0, w-width)
     return (top, left, height, width)
+ 
+ 
+def hpe_cropping(x_cut, img_shape=(256, 256)):
+    h, w = img_shape
+    return (0, 0, x_cut, w)
+
 
 def random_bbox(img_shape=(256,256), max_bbox_shape=(128, 128), max_bbox_delta=40, min_margin=20):
     """Generate a random bbox for the mask on a given image.

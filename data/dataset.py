@@ -4,8 +4,9 @@ from PIL import Image
 import os
 import torch
 import numpy as np
+import json
 
-from .util.mask import (bbox2mask, brush_stroke_mask, get_irregular_mask, random_bbox, random_cropping_bbox)
+from .util.mask import (bbox2mask, brush_stroke_mask, get_irregular_mask, random_bbox,hpe_cropping, random_cropping_bbox)
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
@@ -66,6 +67,8 @@ class InpaintDataset(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+    
+
 
     def get_mask(self):
         if self.mask_mode == 'bbox':
@@ -110,10 +113,13 @@ class UncroppingDataset(data.Dataset):
         ret = {}
         path = self.imgs[index]
         img = self.tfs(self.loader(path))
-        mask = self.get_mask()
+        if self.mask_mode == "hpe":
+            mask = self.get_mask_with_landmarks(path, self.get_dataset_keypoints("landmarks.json"))
+        else:    
+            mask = self.get_mask()
         cond_image = img*(1. - mask) + mask*torch.randn_like(img)
         mask_img = img*(1. - mask) + mask
-
+       
         ret['gt_image'] = img
         ret['cond_image'] = cond_image
         ret['mask_image'] = mask_img
@@ -123,7 +129,20 @@ class UncroppingDataset(data.Dataset):
 
     def __len__(self):
         return len(self.imgs)
+    
+    def load_dataset_keypoints(self, kpoints):
+        with open(kpoints, "r") as json_f:
+            kpoints = json.load(json_f)
+        return kpoints
 
+    def get_mask_with_landmarks(self, path, kpoints):
+        path = path[-1][-4]
+        _, xl, conf1 = self.kpoints[path][11]
+        _, xr, conf2 = self.kpoints[path][12]
+        x = xl if conf1 > conf2 else xr
+        mask = bbox2mask(self.image_size, hpe_cropping(x_cut=int(x // 1)))
+        return torch.from_numpy(mask).permute(2,0,1)
+    
     def get_mask(self):
         if self.mask_mode == 'manual':
             mask = bbox2mask(self.image_size, self.mask_config['shape'])
